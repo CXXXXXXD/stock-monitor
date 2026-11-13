@@ -1,0 +1,38 @@
+YAML
+name: A-Share 14:40 Tail Monitor
+
+on:
+  schedule:
+    # 每个交易日北京时间 14:25 自动唤醒云电脑，由程序内部精准卡点到 14:40:00 选股
+    - cron: '25 6 * * 1-5'
+  workflow_dispatch: # 允许你在网页上随时手动点击测试
+
+env:
+  TZ: Asia/Shanghai
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  screen-and-notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 1. 读取你的仓库代码
+        uses: actions/checkout@v4
+
+      - name: 2. 安装 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 3. 安装股票数据包
+        run: |
+          pip install --upgrade pip
+          pip install akshare pandas requests
+
+      - name: 4. 运行 14:40 尾盘选股并发送微信通知
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: python tail_monitor.py
